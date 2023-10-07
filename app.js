@@ -114,13 +114,13 @@ app.get("/movies", (req, res) => {
   response.next =
     paginatedResponse.length <= 1
       ? null
-      : `${PATH}?offset=${
+      : `${req.protocol}://${req.hostname}:${PORT}${PATH}?offset=${
           actualOffset + 1
         }&limit=${actualLimit}${filtersParametersUrl}`;
 
   response.previous =
     actualOffset >= 1
-      ? `${PATH}?offset=${
+      ? `${req.protocol}://${req.hostname}:${PORT}${PATH}?offset=${
           actualOffset - 1
         }&limit=${actualLimit}${filtersParametersUrl}`
       : null;
