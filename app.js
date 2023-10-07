@@ -6,6 +6,7 @@ const movies = require("./movies.json");
 const { validateMovie, validatePartialMovie } = require("./schemas/movies");
 
 const PORT = process.env.PORT || 3000;
+const BASE_DOMAIN = process.env.BASE_DOMAIN || `http://localhost:${PORT}`;
 
 const ACCEPTED_ORIGINS = [
   "http://localhost:3000",
@@ -114,13 +115,13 @@ app.get("/movies", (req, res) => {
   response.next =
     paginatedResponse.length <= 1
       ? null
-      : `${req.protocol}://${req.hostname}:${PORT}${PATH}?offset=${
+      : `${BASE_DOMAIN}${PATH}?offset=${
           actualOffset + 1
         }&limit=${actualLimit}${filtersParametersUrl}`;
 
   response.previous =
     actualOffset >= 1
-      ? `${req.protocol}://${req.hostname}:${PORT}${PATH}?offset=${
+      ? `${BASE_DOMAIN}${PATH}?offset=${
           actualOffset - 1
         }&limit=${actualLimit}${filtersParametersUrl}`
       : null;
