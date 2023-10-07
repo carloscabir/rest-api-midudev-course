@@ -6,7 +6,7 @@ const movies = require("./movies.json");
 const { validateMovie, validatePartialMovie } = require("./schemas/movies");
 
 const PORT = process.env.PORT || 3000;
-const URL = process.env.URL || `http://localhost:${PORT}`;
+
 const ACCEPTED_ORIGINS = [
   "http://localhost:3000",
   "http://localhost:5500",
@@ -15,11 +15,36 @@ const ACCEPTED_ORIGINS = [
   "http://127.0.0.1:4000",
 ];
 
+const URLFiltersGenerator = (filters) => {
+  let urlFilters = "";
+
+  for (const filter in filters) {
+    if (!filters.hasOwnProperty(filter)) return;
+
+    urlFilters += `&${filter}=${filters[filter]}`;
+  }
+
+  return urlFilters;
+};
+
 app.use(express.json());
 app.disable("x-powered-by");
 
 app.get("/", (req, res) => {
   res.json({ api: "v1.0.0" });
+});
+
+// Middleware para hacer redireccion si es que no se provee offset o limite y agrega filtros si es que existen
+app.use("/movies", (req, res, next) => {
+  let { offset, limit, ...filters } = req.query;
+
+  if (!offset || !limit) {
+    const filtersParametersUrl = URLFiltersGenerator(filters);
+
+    return res.redirect(`/movies?offset=0&limit=5${filtersParametersUrl}`);
+  }
+
+  next();
 });
 
 // Todos los recursos que sean MOVIES se indentifican con /movies
@@ -29,45 +54,80 @@ app.get("/movies", (req, res) => {
     res.header("Access-Control-Allow-Origin", origin);
   }
 
-  let { genre, offset, limit } = req.query;
-  const url = req.url;
-
+  const { offset, limit, ...filters } = req.query;
   const response = {
-    next: `${URL}/movies?offset=${Number(offset) + 1}&limit=${limit}`,
-    previous:
-      offset >= 1 ? `${URL}/movies?offset=${offset - 1}&limit=${limit}` : null,
+    next: "",
+    previous: "",
     results: movies,
   };
 
-  if (!offset || !limit) {
-    // Propiedades por defecto si no se dan estos parametros
-    !offset ? (offset = 0) : offset;
-    !limit ? (limit = 5) : limit;
+  for (const filter in filters) {
+    if (!filters.hasOwnProperty(filter)) return;
 
-    // Auto definicion de offset y limit PENDIENTE (bug)
-    res.redirect(`${url}?offset=${offset}&limit=${limit}`);
+    const filterValue = filters[filter];
+
+    response.results = response.results.filter((movie) => {
+      const movieDataToFilter = movie[filter];
+      let filteredMovie;
+
+      // Negar todos los condicionales y asignar valor a filteredMovie
+      // Verificar si el filtro que quiero aplicar es aplicable en mis recursos
+      if (!movieDataToFilter)
+        return res
+          .status(400)
+          .json({ message: `400: Filter "${filter}" no valid` });
+
+      if (
+        Array.isArray(movieDataToFilter) &&
+        movieDataToFilter.some(
+          (data) => data.toLowerCase() === filterValue.toLowerCase()
+        )
+      )
+        filteredMovie = movie;
+
+      if (
+        typeof movieDataToFilter === "string" &&
+        movieDataToFilter.toLowerCase() === filterValue.toLowerCase()
+      )
+        filteredMovie = movie;
+
+      if (
+        typeof movieDataToFilter === "number" &&
+        movieDataToFilter === Number(filterValue)
+      )
+        filteredMovie = movie;
+
+      if (!response.results[filteredMovie]) return filteredMovie;
+    });
   }
 
-  if (genre) {
-    const filteredMovies = movies.filter((movie) =>
-      movie.genre.some((g) => g.toLowerCase() === genre.toLowerCase())
-    );
-
-    response.next = `${response.next}&genre=${genre}`;
-    response.previous
-      ? (response.previous = `${response.previous}&genre=${genre}`)
-      : null;
-    response.results = filteredMovies;
-  }
+  const PATH = req.path;
+  const actualOffset = parseInt(offset);
+  const actualLimit = parseInt(limit);
+  const filtersParametersUrl = URLFiltersGenerator(filters);
 
   const paginatedResponse = response.results.slice(
-    offset * limit,
-    (Number(offset) + 1) * limit
+    actualOffset * actualLimit,
+    (actualOffset + 1) * actualLimit
   );
-  return res.json({
-    ...response,
-    results: paginatedResponse,
-  });
+
+  response.next =
+    paginatedResponse.length <= 1
+      ? null
+      : `${PATH}?offset=${
+          actualOffset + 1
+        }&limit=${actualLimit}${filtersParametersUrl}`;
+
+  response.previous =
+    actualOffset >= 1
+      ? `${PATH}?offset=${
+          actualOffset - 1
+        }&limit=${actualLimit}${filtersParametersUrl}`
+      : null;
+
+  response.results = paginatedResponse;
+
+  return res.status(200).json(response);
 });
 
 app.get("/movies/:id", (req, res) => {
@@ -147,5 +207,5 @@ app.options("/movies/:id", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server listening at ${URL}`);
+  console.log(`Server listening runing at http://localhost:${PORT}`);
 });

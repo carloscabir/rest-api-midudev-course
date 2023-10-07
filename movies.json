@@ -200,5 +200,36 @@
       "Fantasy"
     ],
     "rate": 7.8
+  },
+  {
+    "id": "6a360a18-c645-4b47-9a7b-2a71babbf389",
+    "title": "Propuesta laboral",
+    "year": 2009,
+    "director": "James Cameron",
+    "duration": 160,
+    "poster": "na",
+    "genre": [
+      "Action",
+      "Adventure",
+      "Fantasy"
+    ],
+    "rate": 9
+  },
+  {
+    "id": "6a360a18-c645-4b47-9a7b-2a71babbf369",
+    "title": "Propuesta laboral",
+    "year": 2009,
+    "director": [
+      "James camaron",
+      "Corean"
+    ],
+    "duration": 160,
+    "poster": "na",
+    "genre": [
+      "Action",
+      "Adventure",
+      "Fantasy"
+    ],
+    "rate": 9
   }
 ]
